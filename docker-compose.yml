@@ -1,0 +1,9 @@
+services:
+  minecraft-bot:
+    build: .
+    container_name: minecraft-discord-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
