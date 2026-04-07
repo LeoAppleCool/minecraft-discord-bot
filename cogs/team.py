@@ -11,8 +11,8 @@ from utils.logger import log as log_channel
 
 log = logging.getLogger("team")
 
-TEAM_NAME_RE    = re.compile(r"^[a-zA-Z0-9_\-]{1,16}$")
-MC_COLOR_CODE   = re.compile(r"§[0-9a-fk-orA-FK-OR]")  # strips §4, §a, §r etc.
+TEAM_NAME_RE  = re.compile(r"^[a-zA-Z0-9_\-]{1,16}$")
+MC_COLOR_CODE = re.compile(r"§[0-9a-fk-orA-FK-OR]")  # strips §4, §a, §r etc.
 
 MC_COLORS = [
     "aqua", "black", "blue", "dark_aqua", "dark_blue", "dark_gray",
@@ -98,53 +98,53 @@ class TeamCog(commands.Cog):
 
     team_group = app_commands.Group(
         name="team",
-        description="🏷️ Minecraft Teams verwalten",
+        description="🏷️ Manage Minecraft scoreboard teams",
     )
 
     # ─────────────────────────────────────────────────────────────────────────
     # /team add
     # ─────────────────────────────────────────────────────────────────────────
 
-    @team_group.command(name="add", description="Erstellt ein neues Minecraft-Team")
+    @team_group.command(name="add", description="Create a new Minecraft team")
     @app_commands.describe(
-        name            = "Teamname (1–16 Zeichen, keine Leerzeichen)",
-        display_name    = "Anzeigename im Spiel (optional)",
-        color           = "Teamfarbe",
-        friendly_fire   = "Dürfen Teammitglieder sich gegenseitig Schaden zufügen?",
-        see_friendly_invisibles = "Können unsichtbare Teammitglieder gesehen werden?",
-        nametag_visibility      = "Wer sieht den Namens-Tag von Teammitgliedern?",
-        death_message_visibility= "Wer sieht Todesnachrichten von Teammitgliedern?",
-        collision_rule          = "Kollisionsregel mit anderen Spielern",
-        prefix = "Text vor dem Spielernamen (max. 16 Zeichen)",
-        suffix = "Text nach dem Spielernamen (max. 16 Zeichen)",
+        name                     = "Team name (1–16 chars, no spaces)",
+        display_name             = "Display name in-game (optional)",
+        color                    = "Team color",
+        friendly_fire            = "Can teammates damage each other?",
+        see_friendly_invisibles  = "Can invisible teammates be seen?",
+        nametag_visibility       = "Who sees teammate nametags?",
+        death_message_visibility = "Who sees teammate death messages?",
+        collision_rule           = "Collision rule with other players",
+        prefix                   = "Text before player name (max 16 chars)",
+        suffix                   = "Text after player name (max 16 chars)",
     )
     @app_commands.choices(
         color=[app_commands.Choice(name=c, value=c) for c in MC_COLORS],
         friendly_fire=[
-            app_commands.Choice(name="✅ Ja — Teammates können sich schaden", value="true"),
-            app_commands.Choice(name="❌ Nein — Kein Schaden an Teammates",  value="false"),
+            app_commands.Choice(name="✅ Yes — Teammates can damage each other", value="true"),
+            app_commands.Choice(name="❌ No — No damage to teammates",           value="false"),
         ],
         see_friendly_invisibles=[
-            app_commands.Choice(name="✅ Ja — Unsichtbare Teammates sichtbar", value="true"),
-            app_commands.Choice(name="❌ Nein — Bleiben unsichtbar",           value="false"),
+            app_commands.Choice(name="✅ Yes — Invisible teammates are visible", value="true"),
+            app_commands.Choice(name="❌ No — Stay invisible",                   value="false"),
         ],
         nametag_visibility=[
-            app_commands.Choice(name="always — Immer sichtbar",                  value="always"),
-            app_commands.Choice(name="hideForOtherTeams — Nur für eigenes Team", value="hideForOtherTeams"),
-            app_commands.Choice(name="hideForOwnTeam — Nur für andere Teams",    value="hideForOwnTeam"),
-            app_commands.Choice(name="never — Niemals sichtbar",                 value="never"),
+            app_commands.Choice(name="always — Always visible",                    value="always"),
+            app_commands.Choice(name="hideForOtherTeams — Own team only",          value="hideForOtherTeams"),
+            app_commands.Choice(name="hideForOwnTeam — Other teams only",          value="hideForOwnTeam"),
+            app_commands.Choice(name="never — Never visible",                      value="never"),
         ],
         death_message_visibility=[
-            app_commands.Choice(name="always — Alle sehen Todesnachrichten",             value="always"),
-            app_commands.Choice(name="hideForOtherTeams — Nur eigenes Team sieht es",    value="hideForOtherTeams"),
-            app_commands.Choice(name="hideForOwnTeam — Nur andere Teams sehen es",       value="hideForOwnTeam"),
-            app_commands.Choice(name="never — Niemand sieht Todesnachrichten",           value="never"),
+            app_commands.Choice(name="always — Everyone sees death messages",          value="always"),
+            app_commands.Choice(name="hideForOtherTeams — Own team only",             value="hideForOtherTeams"),
+            app_commands.Choice(name="hideForOwnTeam — Other teams only",             value="hideForOwnTeam"),
+            app_commands.Choice(name="never — Nobody sees death messages",             value="never"),
         ],
         collision_rule=[
-            app_commands.Choice(name="always — Kollision mit allen",               value="always"),
-            app_commands.Choice(name="pushOtherTeams — Schiebt andere Teams",      value="pushOtherTeams"),
-            app_commands.Choice(name="pushOwnTeam — Schiebt eigene Teammates",     value="pushOwnTeam"),
-            app_commands.Choice(name="never — Keine Kollision",                    value="never"),
+            app_commands.Choice(name="always — Collide with everyone",            value="always"),
+            app_commands.Choice(name="pushOtherTeams — Push other teams",         value="pushOtherTeams"),
+            app_commands.Choice(name="pushOwnTeam — Push own teammates",          value="pushOwnTeam"),
+            app_commands.Choice(name="never — No collision",                      value="never"),
         ],
     )
     async def team_add(
@@ -167,33 +167,33 @@ class TeamCog(commands.Cog):
         ign = await get_own_ign(interaction.user.id)
         if not ign:
             await interaction.followup.send(
-                "❌ Du musst auf der Whitelist stehen, um ein Team zu erstellen.", ephemeral=True
+                "❌ You must be whitelisted to create a team.", ephemeral=True
             )
             return
 
         # Name validation
         if not TEAM_NAME_RE.match(name):
             await interaction.followup.send(
-                "❌ Ungültiger Teamname!\n"
-                "Erlaubt: Buchstaben, Zahlen, `_` und `-` · Max. **16 Zeichen** · Keine Leerzeichen.",
+                "❌ Invalid team name!\n"
+                "Allowed: letters, numbers, `_` and `-` · Max **16 characters** · No spaces.",
                 ephemeral=True,
             )
             return
 
         # Prefix/Suffix length
         if prefix and len(prefix) > 16:
-            await interaction.followup.send("❌ Prefix darf maximal **16 Zeichen** lang sein.", ephemeral=True)
+            await interaction.followup.send("❌ Prefix must be at most **16 characters**.", ephemeral=True)
             return
         if suffix and len(suffix) > 16:
-            await interaction.followup.send("❌ Suffix darf maximal **16 Zeichen** lang sein.", ephemeral=True)
+            await interaction.followup.send("❌ Suffix must be at most **16 characters**.", ephemeral=True)
             return
 
         # One team per player
         existing = await get_creator_teams(interaction.user.id)
         if existing:
             await interaction.followup.send(
-                f"❌ Du besitzt bereits Team **`{existing[0]}`**.\n"
-                "Du kannst nur ein Team gleichzeitig besitzen. Lösche es zuerst mit `/team remove`.",
+                f"❌ You already own team **`{existing[0]}`**.\n"
+                "You can only own one team at a time. Delete it first with `/team remove`.",
                 ephemeral=True,
             )
             return
@@ -202,18 +202,18 @@ class TeamCog(commands.Cog):
         try:
             resp = await rcon_command(f"team add {name}")
         except Exception:
-            await interaction.followup.send("❌ RCON-Verbindung fehlgeschlagen.", ephemeral=True)
+            await interaction.followup.send("❌ RCON connection failed.", ephemeral=True)
             return
 
         if "already" in resp.lower():
             await interaction.followup.send(
-                f"❌ Ein Team namens `{name}` existiert bereits auf dem Server.", ephemeral=True
+                f"❌ A team named `{name}` already exists on the server.", ephemeral=True
             )
             return
 
         if "created" not in resp.lower():
             await interaction.followup.send(
-                f"❌ Team konnte nicht erstellt werden:\n```{resp}```", ephemeral=True
+                f"❌ Failed to create team:\n```{resp}```", ephemeral=True
             )
             return
 
@@ -256,73 +256,73 @@ class TeamCog(commands.Cog):
                 )
                 await db.commit()
         except Exception as e:
-            log.error(f"DB-Fehler beim Speichern von Team '{name}': {e}")
+            log.error(f"DB error saving team '{name}': {e}")
             await interaction.followup.send(
-                f"⚠️ Team wurde in Minecraft erstellt, aber **nicht in der Datenbank gespeichert**!\n"
-                f"```{e}```\nBitte starte den Bot neu und versuche es erneut.",
+                f"⚠️ Team was created in Minecraft but **not saved to the database**!\n"
+                f"```{e}```\nPlease restart the bot and try again.",
                 ephemeral=True,
             )
             return
 
         # Response embed
         embed = discord.Embed(
-            title=f"✅ Team `{name}` erstellt!",
+            title=f"✅ Team `{name}` created!",
             color=COLOR_HEX.get(color or "", 0x2ECC71),
         )
-        embed.add_field(name="👑 Besitzer",  value=interaction.user.mention, inline=True)
+        embed.add_field(name="👑 Owner", value=interaction.user.mention, inline=True)
         if display_name:
-            embed.add_field(name="📛 Anzeigename", value=display_name, inline=True)
+            embed.add_field(name="📛 Display Name", value=display_name, inline=True)
         if color:
-            embed.add_field(name="🎨 Farbe", value=f"`{color}`", inline=True)
+            embed.add_field(name="🎨 Color", value=f"`{color}`", inline=True)
 
         settings = []
         if friendly_fire:
-            settings.append(f"⚔️ Friendly Fire: **{'an' if friendly_fire == 'true' else 'aus'}**")
+            settings.append(f"⚔️ Friendly Fire: **{'on' if friendly_fire == 'true' else 'off'}**")
         if see_friendly_invisibles:
-            settings.append(f"👁️ Unsichtbar sehen: **{'an' if see_friendly_invisibles == 'true' else 'aus'}**")
+            settings.append(f"👁️ See Invisible: **{'on' if see_friendly_invisibles == 'true' else 'off'}**")
         if nametag_visibility:
-            settings.append(f"🏷️ Namens-Tag: **{nametag_visibility}**")
+            settings.append(f"🏷️ Nametag: **{nametag_visibility}**")
         if death_message_visibility:
-            settings.append(f"💀 Todesnachricht: **{death_message_visibility}**")
+            settings.append(f"💀 Death Messages: **{death_message_visibility}**")
         if collision_rule:
-            settings.append(f"💥 Kollision: **{collision_rule}**")
+            settings.append(f"💥 Collision: **{collision_rule}**")
         if prefix:
             settings.append(f"◀️ Prefix: `{prefix}`")
         if suffix:
             settings.append(f"▶️ Suffix: `{suffix}`")
         if settings:
-            embed.add_field(name="⚙️ Einstellungen", value="\n".join(settings), inline=False)
+            embed.add_field(name="⚙️ Settings", value="\n".join(settings), inline=False)
         if errors:
-            embed.add_field(name="⚠️ Warnungen", value="\n".join(errors), inline=False)
-        embed.set_footer(text="Mit /team join können Spieler deinem Team beitreten.")
+            embed.add_field(name="⚠️ Warnings", value="\n".join(errors), inline=False)
+        embed.set_footer(text="Players can join with /team join.")
 
         await interaction.followup.send(embed=embed, ephemeral=True)
-        log.info(f"{interaction.user} ({interaction.user.id}) erstellte Team '{name}'")
+        log.info(f"{interaction.user} ({interaction.user.id}) created team '{name}'")
 
-        log_embed = discord.Embed(title="🏷️ Team erstellt", color=0x2ECC71)
-        log_embed.add_field(name="Team",        value=f"`{name}`",              inline=True)
-        log_embed.add_field(name="Erstellt von", value=interaction.user.mention, inline=True)
+        log_embed = discord.Embed(title="🏷️ Team Created", color=0x2ECC71)
+        log_embed.add_field(name="Team",       value=f"`{name}`",              inline=True)
+        log_embed.add_field(name="Created by", value=interaction.user.mention, inline=True)
         await log_channel(self.bot, log_embed)
 
     # ─────────────────────────────────────────────────────────────────────────
     # /team remove
     # ─────────────────────────────────────────────────────────────────────────
 
-    @team_group.command(name="remove", description="Löscht dein eigenes Team (inkl. aller Mitglieder)")
-    @app_commands.describe(name="Dein Team — nur dein eigenes kann gelöscht werden")
+    @team_group.command(name="remove", description="Delete your own team (removes all members)")
+    @app_commands.describe(name="Your team — only your own team can be deleted")
     async def team_remove(self, interaction: discord.Interaction, name: str):
         await interaction.response.defer(ephemeral=True)
 
         ign = await get_own_ign(interaction.user.id)
         if not ign:
-            await interaction.followup.send("❌ Du musst whitelistet sein.", ephemeral=True)
+            await interaction.followup.send("❌ You must be whitelisted.", ephemeral=True)
             return
 
         own_teams = await get_creator_teams(interaction.user.id)
         if name not in own_teams:
             await interaction.followup.send(
-                "❌ Du kannst nur dein **eigenes** Team löschen.\n"
-                "Nutze `/team list`, um alle Teams anzuzeigen.",
+                "❌ You can only delete **your own** team.\n"
+                "Use `/team list` to see all teams.",
                 ephemeral=True,
             )
             return
@@ -330,7 +330,7 @@ class TeamCog(commands.Cog):
         try:
             resp = await rcon_command(f"team remove {name}")
         except Exception:
-            await interaction.followup.send("❌ RCON-Verbindung fehlgeschlagen.", ephemeral=True)
+            await interaction.followup.send("❌ RCON connection failed.", ephemeral=True)
             return
 
         # Remove from DB even if MC already removed it
@@ -339,15 +339,15 @@ class TeamCog(commands.Cog):
             await db.commit()
 
         await interaction.followup.send(
-            f"🗑️ Team **`{name}`** wurde gelöscht.\n"
+            f"🗑️ Team **`{name}`** has been deleted.\n"
             f"```{resp or 'Team removed.'}```",
             ephemeral=True,
         )
-        log.info(f"{interaction.user} ({interaction.user.id}) löschte Team '{name}'")
+        log.info(f"{interaction.user} ({interaction.user.id}) deleted team '{name}'")
 
-        log_embed = discord.Embed(title="🗑️ Team gelöscht", color=0xE74C3C)
-        log_embed.add_field(name="Team",        value=f"`{name}`",              inline=True)
-        log_embed.add_field(name="Gelöscht von", value=interaction.user.mention, inline=True)
+        log_embed = discord.Embed(title="🗑️ Team Deleted", color=0xE74C3C)
+        log_embed.add_field(name="Team",       value=f"`{name}`",              inline=True)
+        log_embed.add_field(name="Deleted by", value=interaction.user.mention, inline=True)
         await log_channel(self.bot, log_embed)
 
     @team_remove.autocomplete("name")
@@ -364,15 +364,15 @@ class TeamCog(commands.Cog):
     # /team join
     # ─────────────────────────────────────────────────────────────────────────
 
-    @team_group.command(name="join", description="Tritt einem Team bei (nur du selbst)")
-    @app_commands.describe(name="Team dem du beitreten möchtest")
+    @team_group.command(name="join", description="Join a team (yourself only)")
+    @app_commands.describe(name="Team you want to join")
     async def team_join(self, interaction: discord.Interaction, name: str):
         await interaction.response.defer(ephemeral=True)
 
         ign = await get_own_ign(interaction.user.id)
         if not ign:
             await interaction.followup.send(
-                "❌ Du musst auf der Whitelist stehen, um einem Team beizutreten.", ephemeral=True
+                "❌ You must be whitelisted to join a team.", ephemeral=True
             )
             return
 
@@ -382,38 +382,37 @@ class TeamCog(commands.Cog):
         try:
             resp = await rcon_command(f"team join {name} {ign}")
         except Exception:
-            await interaction.followup.send("❌ RCON-Verbindung fehlgeschlagen.", ephemeral=True)
+            await interaction.followup.send("❌ RCON connection failed.", ephemeral=True)
             return
 
         resp_clean = _strip_colors(resp).strip()
         resp_lower = resp_clean.lower()
 
-        # Debug: zeige die rohe MC-Antwort falls leer oder fehlerhaft
         if not resp_clean:
             await interaction.followup.send(
-                f"❌ Minecraft hat keine Antwort zurückgegeben.\n"
-                f"Gesendeter Befehl: `team join {name} {ign}`\n"
-                f"Bitte stelle sicher dass du **online** auf dem Server bist!",
+                f"❌ Minecraft returned no response.\n"
+                f"Command sent: `team join {name} {ign}`\n"
+                f"Make sure you are **online** on the server!",
                 ephemeral=True,
             )
             return
 
         if "error" in resp_lower or "unknown" in resp_lower or "0" in resp_lower:
             await interaction.followup.send(
-                f"❌ Beitreten fehlgeschlagen:\n```{resp_clean}```\n"
+                f"❌ Failed to join team:\n```{resp_clean}```\n"
                 f"IGN: `{ign}` · Team: `{name}`",
                 ephemeral=True,
             )
             return
 
         await interaction.followup.send(
-            f"✅ Du (`{ign}`) bist jetzt in Team **`{name}`**!", ephemeral=True
+            f"✅ You (`{ign}`) are now in team **`{name}`**!", ephemeral=True
         )
-        log.info(f"{interaction.user} ({ign}) ist Team '{name}' beigetreten")
+        log.info(f"{interaction.user} ({ign}) joined team '{name}'")
 
-        log_embed = discord.Embed(title="➕ Team beigetreten", color=0x3498DB)
-        log_embed.add_field(name="Team",    value=f"`{name}`",                        inline=True)
-        log_embed.add_field(name="Spieler", value=f"`{ign}` · {interaction.user.mention}", inline=True)
+        log_embed = discord.Embed(title="➕ Joined Team", color=0x3498DB)
+        log_embed.add_field(name="Team",   value=f"`{name}`",                        inline=True)
+        log_embed.add_field(name="Player", value=f"`{ign}` · {interaction.user.mention}", inline=True)
         await log_channel(self.bot, log_embed)
 
     @team_join.autocomplete("name")
@@ -431,82 +430,82 @@ class TeamCog(commands.Cog):
     # /team leave
     # ─────────────────────────────────────────────────────────────────────────
 
-    @team_group.command(name="leave", description="Verlässt dein aktuelles Team (nur du selbst)")
+    @team_group.command(name="leave", description="Leave your current team (yourself only)")
     async def team_leave(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
 
         ign = await get_own_ign(interaction.user.id)
         if not ign:
-            await interaction.followup.send("❌ Du musst whitelistet sein.", ephemeral=True)
+            await interaction.followup.send("❌ You must be whitelisted.", ephemeral=True)
             return
 
         try:
             resp = await rcon_command(f"team leave @a[name={ign.strip()}]")
         except Exception:
-            await interaction.followup.send("❌ RCON-Verbindung fehlgeschlagen.", ephemeral=True)
+            await interaction.followup.send("❌ RCON connection failed.", ephemeral=True)
             return
 
         # MC returns an error message if the player wasn't in a team
         if "error" in resp.lower() or "no entity" in resp.lower():
             await interaction.followup.send(
-                f"⚠️ Konnte Team nicht verlassen — bist du in einem Team?\n```{resp}```",
+                f"⚠️ Could not leave team — are you in one?\n```{resp}```",
                 ephemeral=True,
             )
             return
 
         await interaction.followup.send(
-            f"✅ Du (`{ign}`) hast dein Team verlassen.", ephemeral=True
+            f"✅ You (`{ign}`) have left your team.", ephemeral=True
         )
-        log.info(f"{interaction.user} ({ign}) hat sein Team verlassen")
+        log.info(f"{interaction.user} ({ign}) left their team")
 
-        log_embed = discord.Embed(title="➖ Team verlassen", color=0xE67E22)
-        log_embed.add_field(name="Spieler", value=f"`{ign}` · {interaction.user.mention}", inline=True)
+        log_embed = discord.Embed(title="➖ Left Team", color=0xE67E22)
+        log_embed.add_field(name="Player", value=f"`{ign}` · {interaction.user.mention}", inline=True)
         await log_channel(self.bot, log_embed)
 
     # ─────────────────────────────────────────────────────────────────────────
     # /team modify
     # ─────────────────────────────────────────────────────────────────────────
 
-    @team_group.command(name="modify", description="Ändert Einstellungen deines eigenen Teams")
+    @team_group.command(name="modify", description="Change settings for your own team")
     @app_commands.describe(
-        name            = "Dein Team",
-        display_name    = "Neuer Anzeigename im Spiel",
-        color           = "Neue Teamfarbe",
-        friendly_fire   = "Friendly Fire an/aus",
-        see_friendly_invisibles = "Unsichtbare Teammates sehen an/aus",
-        nametag_visibility      = "Namens-Tag Sichtbarkeit",
-        death_message_visibility= "Todesnachricht Sichtbarkeit",
-        collision_rule          = "Kollisionsregel",
-        prefix = "Text vor dem Spielernamen (max. 16 Zeichen)",
-        suffix = "Text nach dem Spielernamen (max. 16 Zeichen)",
+        name                     = "Your team",
+        display_name             = "New in-game display name",
+        color                    = "New team color",
+        friendly_fire            = "Friendly fire on/off",
+        see_friendly_invisibles  = "See invisible teammates on/off",
+        nametag_visibility       = "Nametag visibility",
+        death_message_visibility = "Death message visibility",
+        collision_rule           = "Collision rule",
+        prefix                   = "Text before player name (max 16 chars)",
+        suffix                   = "Text after player name (max 16 chars)",
     )
     @app_commands.choices(
         color=[app_commands.Choice(name=c, value=c) for c in MC_COLORS],
         friendly_fire=[
-            app_commands.Choice(name="✅ An — Teammates können sich schaden",  value="true"),
-            app_commands.Choice(name="❌ Aus — Kein Schaden an Teammates",     value="false"),
+            app_commands.Choice(name="✅ On — Teammates can damage each other", value="true"),
+            app_commands.Choice(name="❌ Off — No damage to teammates",         value="false"),
         ],
         see_friendly_invisibles=[
-            app_commands.Choice(name="✅ An — Unsichtbare Teammates sichtbar", value="true"),
-            app_commands.Choice(name="❌ Aus — Bleiben unsichtbar",            value="false"),
+            app_commands.Choice(name="✅ On — Invisible teammates are visible", value="true"),
+            app_commands.Choice(name="❌ Off — Stay invisible",                 value="false"),
         ],
         nametag_visibility=[
-            app_commands.Choice(name="always — Immer sichtbar",                  value="always"),
-            app_commands.Choice(name="hideForOtherTeams — Nur für eigenes Team", value="hideForOtherTeams"),
-            app_commands.Choice(name="hideForOwnTeam — Nur für andere Teams",    value="hideForOwnTeam"),
-            app_commands.Choice(name="never — Niemals sichtbar",                 value="never"),
+            app_commands.Choice(name="always — Always visible",                    value="always"),
+            app_commands.Choice(name="hideForOtherTeams — Own team only",          value="hideForOtherTeams"),
+            app_commands.Choice(name="hideForOwnTeam — Other teams only",          value="hideForOwnTeam"),
+            app_commands.Choice(name="never — Never visible",                      value="never"),
         ],
         death_message_visibility=[
-            app_commands.Choice(name="always — Alle sehen Todesnachrichten",          value="always"),
-            app_commands.Choice(name="hideForOtherTeams — Nur eigenes Team sieht es", value="hideForOtherTeams"),
-            app_commands.Choice(name="hideForOwnTeam — Nur andere Teams sehen es",    value="hideForOwnTeam"),
-            app_commands.Choice(name="never — Niemand sieht Todesnachrichten",        value="never"),
+            app_commands.Choice(name="always — Everyone sees death messages",          value="always"),
+            app_commands.Choice(name="hideForOtherTeams — Own team only",             value="hideForOtherTeams"),
+            app_commands.Choice(name="hideForOwnTeam — Other teams only",             value="hideForOwnTeam"),
+            app_commands.Choice(name="never — Nobody sees death messages",             value="never"),
         ],
         collision_rule=[
-            app_commands.Choice(name="always — Kollision mit allen",            value="always"),
-            app_commands.Choice(name="pushOtherTeams — Schiebt andere Teams",   value="pushOtherTeams"),
-            app_commands.Choice(name="pushOwnTeam — Schiebt eigene Teammates",  value="pushOwnTeam"),
-            app_commands.Choice(name="never — Keine Kollision",                 value="never"),
+            app_commands.Choice(name="always — Collide with everyone",            value="always"),
+            app_commands.Choice(name="pushOtherTeams — Push other teams",         value="pushOtherTeams"),
+            app_commands.Choice(name="pushOwnTeam — Push own teammates",          value="pushOwnTeam"),
+            app_commands.Choice(name="never — No collision",                      value="never"),
         ],
     )
     async def team_modify(
@@ -527,54 +526,54 @@ class TeamCog(commands.Cog):
 
         ign = await get_own_ign(interaction.user.id)
         if not ign:
-            await interaction.followup.send("❌ Du musst whitelistet sein.", ephemeral=True)
+            await interaction.followup.send("❌ You must be whitelisted.", ephemeral=True)
             return
 
         # Ownership check
         own_teams = await get_creator_teams(interaction.user.id)
         if name not in own_teams:
             await interaction.followup.send(
-                "❌ Du kannst nur **dein eigenes** Team modifizieren.", ephemeral=True
+                "❌ You can only modify **your own** team.", ephemeral=True
             )
             return
 
         if not any([display_name, color, friendly_fire, see_friendly_invisibles,
                     nametag_visibility, death_message_visibility, collision_rule, prefix, suffix]):
             await interaction.followup.send(
-                "⚠️ Gib mindestens eine Option an, die du ändern möchtest.", ephemeral=True
+                "⚠️ Provide at least one option to change.", ephemeral=True
             )
             return
 
         # Prefix/Suffix length
         if prefix and len(prefix) > 16:
-            await interaction.followup.send("❌ Prefix darf maximal **16 Zeichen** lang sein.", ephemeral=True)
+            await interaction.followup.send("❌ Prefix must be at most **16 characters**.", ephemeral=True)
             return
         if suffix and len(suffix) > 16:
-            await interaction.followup.send("❌ Suffix darf maximal **16 Zeichen** lang sein.", ephemeral=True)
+            await interaction.followup.send("❌ Suffix must be at most **16 characters**.", ephemeral=True)
             return
 
         # Build modify tasks: (mc_option, value, human_label)
         tasks: list[tuple[str, str, str]] = []
         if display_name:
-            tasks.append(("displayName",           _json_text(display_name),    f"📛 Anzeigename → `{display_name}`"))
+            tasks.append(("displayName",           _json_text(display_name),    f"📛 Display Name → `{display_name}`"))
         if color:
-            tasks.append(("color",                 color,                       f"🎨 Farbe → `{color}`"))
+            tasks.append(("color",                 color,                       f"🎨 Color → `{color}`"))
         if friendly_fire:
-            label = "an" if friendly_fire == "true" else "aus"
+            label = "on" if friendly_fire == "true" else "off"
             tasks.append(("friendlyFire",           friendly_fire,               f"⚔️ Friendly Fire → **{label}**"))
         if see_friendly_invisibles:
-            label = "an" if see_friendly_invisibles == "true" else "aus"
-            tasks.append(("seeFriendlyInvisibles",  see_friendly_invisibles,     f"👁️ Unsichtbar sehen → **{label}**"))
+            label = "on" if see_friendly_invisibles == "true" else "off"
+            tasks.append(("seeFriendlyInvisibles",  see_friendly_invisibles,     f"👁️ See Invisible → **{label}**"))
         if nametag_visibility:
-            tasks.append(("nametagVisibility",      nametag_visibility,          f"🏷️ Namens-Tag → `{nametag_visibility}`"))
+            tasks.append(("nametagVisibility",      nametag_visibility,          f"🏷️ Nametag → `{nametag_visibility}`"))
         if death_message_visibility:
-            tasks.append(("deathMessageVisibility", death_message_visibility,    f"💀 Todesnachricht → `{death_message_visibility}`"))
+            tasks.append(("deathMessageVisibility", death_message_visibility,    f"💀 Death Messages → `{death_message_visibility}`"))
         if collision_rule:
-            tasks.append(("collisionRule",          collision_rule,              f"💥 Kollision → `{collision_rule}`"))
+            tasks.append(("collisionRule",          collision_rule,              f"💥 Collision → `{collision_rule}`"))
         if prefix:
-            tasks.append(("prefix",  prefix,  f"◀️ Prefix → `{prefix}`"))
+            tasks.append(("prefix", prefix, f"◀️ Prefix → `{prefix}`"))
         if suffix:
-            tasks.append(("suffix",  suffix,  f"▶️ Suffix → `{suffix}`"))
+            tasks.append(("suffix", suffix, f"▶️ Suffix → `{suffix}`"))
 
         changes: list[str] = []
         errors:  list[str] = []
@@ -590,24 +589,24 @@ class TeamCog(commands.Cog):
                 errors.append(f"`{option}`: {e}")
 
         embed = discord.Embed(
-            title=f"✏️ Team `{name}` bearbeitet",
+            title=f"✏️ Team `{name}` updated",
             color=COLOR_HEX.get(color or "", 0x9B59B6),
         )
         if changes:
-            embed.add_field(name="✅ Geändert", value="\n".join(changes), inline=False)
+            embed.add_field(name="✅ Changed", value="\n".join(changes), inline=False)
         if errors:
-            embed.add_field(name="❌ Fehler",   value="\n".join(errors),  inline=False)
+            embed.add_field(name="❌ Errors",  value="\n".join(errors),  inline=False)
         if not changes and not errors:
-            embed.description = "Keine Änderungen vorgenommen."
+            embed.description = "No changes made."
 
         await interaction.followup.send(embed=embed, ephemeral=True)
 
         if changes:
-            log.info(f"{interaction.user} modifizierte Team '{name}': {changes}")
-            log_embed = discord.Embed(title="✏️ Team modifiziert", color=0x9B59B6)
-            log_embed.add_field(name="Team",       value=f"`{name}`",              inline=True)
-            log_embed.add_field(name="Von",        value=interaction.user.mention, inline=True)
-            log_embed.add_field(name="Änderungen", value="\n".join(changes),       inline=False)
+            log.info(f"{interaction.user} modified team '{name}': {changes}")
+            log_embed = discord.Embed(title="✏️ Team Modified", color=0x9B59B6)
+            log_embed.add_field(name="Team",    value=f"`{name}`",              inline=True)
+            log_embed.add_field(name="By",      value=interaction.user.mention, inline=True)
+            log_embed.add_field(name="Changes", value="\n".join(changes),       inline=False)
             await log_channel(self.bot, log_embed)
 
     @team_modify.autocomplete("name")
@@ -624,14 +623,14 @@ class TeamCog(commands.Cog):
     # /team list
     # ─────────────────────────────────────────────────────────────────────────
 
-    @team_group.command(name="list", description="Zeigt alle vorhandenen Teams mit Mitgliedern")
+    @team_group.command(name="list", description="List all active teams with their members")
     async def team_list(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=False)
 
         # Use DB as source of truth — stores the real internal team names
         db_teams = await get_all_db_teams()
         if not db_teams:
-            await interaction.followup.send("📋 Es gibt aktuell keine Teams.")
+            await interaction.followup.send("📋 There are no active teams right now.")
             return
 
         shown = db_teams[:20]
@@ -645,16 +644,16 @@ class TeamCog(commands.Cog):
 
         for (team_name, creator_id), members in zip(shown, member_lists):
             owner_str  = f"<@{creator_id}>"
-            member_str = " · ".join(f"`{m}`" for m in members) if members else "*Keine Mitglieder*"
+            member_str = " · ".join(f"`{m}`" for m in members) if members else "*No members*"
 
             embed.add_field(
                 name  = f"🏷️ {team_name}",
-                value = f"**👑 Besitzer:** {owner_str}\n**👥 Mitglieder:** {member_str}",
+                value = f"**👑 Owner:** {owner_str}\n**👥 Members:** {member_str}",
                 inline= False,
             )
 
         if len(db_teams) > 20:
-            embed.set_footer(text=f"Zeige 20 von {len(db_teams)} Teams.")
+            embed.set_footer(text=f"Showing 20 of {len(db_teams)} teams.")
 
         await interaction.followup.send(embed=embed)
 

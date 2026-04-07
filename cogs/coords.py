@@ -13,15 +13,15 @@ DIM_EMOJI = {"overworld": "🌍", "nether": "🔥", "end": "🌌"}
 
 class CoordsCog(commands.Cog):
     coords_group = app_commands.Group(
-        name="coords", description="Koordinaten speichern und abrufen"
+        name="coords", description="Save and retrieve coordinates"
     )
 
-    @coords_group.command(name="add", description="Speichert eine Koordinate")
+    @coords_group.command(name="add", description="Save a coordinate")
     @app_commands.describe(
-        name="Name des Ortes (z.B. 'Base', 'Mine')",
-        x="X-Koordinate",
-        y="Y-Koordinate",
-        z="Z-Koordinate",
+        name="Location name (e.g. 'Base', 'Mine')",
+        x="X coordinate",
+        y="Y coordinate",
+        z="Z coordinate",
         dimension="Dimension",
     )
     @app_commands.choices(dimension=[
@@ -40,7 +40,7 @@ class CoordsCog(commands.Cog):
     ):
         if len(name) > 32:
             await interaction.response.send_message(
-                "❌ Name zu lang (max 32 Zeichen).", ephemeral=True
+                "❌ Name too long (max 32 characters).", ephemeral=True
             )
             return
 
@@ -58,16 +58,16 @@ class CoordsCog(commands.Cog):
                 )
                 await db.commit()
             except Exception as e:
-                await interaction.response.send_message(f"❌ Datenbankfehler: `{e}`", ephemeral=True)
+                await interaction.response.send_message(f"❌ Database error: `{e}`", ephemeral=True)
                 return
 
         emoji = DIM_EMOJI.get(dimension, "📍")
         await interaction.response.send_message(
-            f"{emoji} **{name}** gespeichert: `{x}, {y}, {z}` ({dimension})",
+            f"{emoji} **{name}** saved: `{x}, {y}, {z}` ({dimension})",
             ephemeral=True,
         )
 
-    @coords_group.command(name="list", description="Zeigt alle deine gespeicherten Koordinaten")
+    @coords_group.command(name="list", description="List all your saved coordinates")
     async def list_coords(self, interaction: discord.Interaction):
         async with aiosqlite.connect(DB_PATH) as db:
             cursor = await db.execute(
@@ -78,13 +78,13 @@ class CoordsCog(commands.Cog):
 
         if not rows:
             await interaction.response.send_message(
-                "📭 Du hast noch keine Koordinaten gespeichert. Nutze `/coords add`!",
+                "📭 You have no saved coordinates yet. Use `/coords add`!",
                 ephemeral=True,
             )
             return
 
         embed = discord.Embed(
-            title=f"📍 Deine Koordinaten ({len(rows)})",
+            title=f"📍 Your Coordinates ({len(rows)})",
             color=0x3498DB,
         )
         for name, x, y, z, dim in rows:
@@ -96,8 +96,8 @@ class CoordsCog(commands.Cog):
             )
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @coords_group.command(name="get", description="Sucht eine bestimmte Koordinate")
-    @app_commands.describe(name="Name des gesuchten Ortes")
+    @coords_group.command(name="get", description="Look up a specific coordinate")
+    @app_commands.describe(name="Name of the location to look up")
     async def get(self, interaction: discord.Interaction, name: str):
         async with aiosqlite.connect(DB_PATH) as db:
             cursor = await db.execute(
@@ -108,19 +108,19 @@ class CoordsCog(commands.Cog):
 
         if not row:
             await interaction.response.send_message(
-                f"❌ Keine Koordinate namens **{name}** gefunden.", ephemeral=True
+                f"❌ No coordinate named **{name}** found.", ephemeral=True
             )
             return
 
         x, y, z, dim, created_at = row
         emoji = DIM_EMOJI.get(dim, "📍")
         await interaction.response.send_message(
-            f"{emoji} **{name}** — `{x}, {y}, {z}` ({dim})\n_Gespeichert am {created_at[:10]}_",
+            f"{emoji} **{name}** — `{x}, {y}, {z}` ({dim})\n_Saved on {created_at[:10]}_",
             ephemeral=True,
         )
 
-    @coords_group.command(name="delete", description="Löscht eine gespeicherte Koordinate")
-    @app_commands.describe(name="Name der Koordinate die gelöscht werden soll")
+    @coords_group.command(name="delete", description="Delete a saved coordinate")
+    @app_commands.describe(name="Name of the coordinate to delete")
     async def delete(self, interaction: discord.Interaction, name: str):
         async with aiosqlite.connect(DB_PATH) as db:
             cursor = await db.execute(
@@ -132,15 +132,15 @@ class CoordsCog(commands.Cog):
 
         if deleted == 0:
             await interaction.response.send_message(
-                f"❌ Keine Koordinate namens **{name}** gefunden.", ephemeral=True
+                f"❌ No coordinate named **{name}** found.", ephemeral=True
             )
         else:
             await interaction.response.send_message(
-                f"🗑️ **{name}** wurde gelöscht.", ephemeral=True
+                f"🗑️ **{name}** has been deleted.", ephemeral=True
             )
 
-    @coords_group.command(name="share", description="Teilt eine Koordinate im aktuellen Kanal")
-    @app_commands.describe(name="Name der Koordinate die geteilt werden soll")
+    @coords_group.command(name="share", description="Share a coordinate publicly in the current channel")
+    @app_commands.describe(name="Name of the coordinate to share")
     async def share(self, interaction: discord.Interaction, name: str):
         async with aiosqlite.connect(DB_PATH) as db:
             cursor = await db.execute(
@@ -151,7 +151,7 @@ class CoordsCog(commands.Cog):
 
         if not row:
             await interaction.response.send_message(
-                f"❌ Keine Koordinate namens **{name}** gefunden.", ephemeral=True
+                f"❌ No coordinate named **{name}** found.", ephemeral=True
             )
             return
 
@@ -159,10 +159,10 @@ class CoordsCog(commands.Cog):
         emoji = DIM_EMOJI.get(dim, "📍")
         embed = discord.Embed(
             title=f"{emoji}  {name}",
-            description=f"**Koordinaten:** `{x}, {y}, {z}`\n**Dimension:** {dim.capitalize()}",
+            description=f"**Coordinates:** `{x}, {y}, {z}`\n**Dimension:** {dim.capitalize()}",
             color=0x27AE60,
         )
-        embed.set_footer(text=f"Geteilt von {interaction.user.display_name}")
+        embed.set_footer(text=f"Shared by {interaction.user.display_name}")
         await interaction.response.send_message(embed=embed)
 
 

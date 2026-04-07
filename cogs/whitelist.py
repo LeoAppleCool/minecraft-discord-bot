@@ -17,8 +17,8 @@ IGN_REGEX = re.compile(r"^[a-zA-Z0-9_]{3,16}$")
 
 class IGNModal(discord.ui.Modal, title="🎮 Minecraft Whitelist"):
     ign = discord.ui.TextInput(
-        label="Dein Minecraft Username (IGN)",
-        placeholder="z.B. Notch  |  Bedrock: .Notch (Punkt wird auto-ergänzt)",
+        label="Your Minecraft Username (IGN)",
+        placeholder="e.g. Notch  |  Bedrock: .Notch (dot is added automatically)",
         min_length=3,
         max_length=17,
         style=discord.TextStyle.short,
@@ -26,7 +26,7 @@ class IGNModal(discord.ui.Modal, title="🎮 Minecraft Whitelist"):
 
     platform = discord.ui.TextInput(
         label="Platform (java / bedrock)",
-        placeholder="java  oder  bedrock",
+        placeholder="java  or  bedrock",
         min_length=4,
         max_length=7,
         style=discord.TextStyle.short,
@@ -43,7 +43,7 @@ class IGNModal(discord.ui.Modal, title="🎮 Minecraft Whitelist"):
 
         if platform not in ("java", "bedrock"):
             await interaction.followup.send(
-                "❌ Platform muss `java` oder `bedrock` sein.", ephemeral=True
+                "❌ Platform must be `java` or `bedrock`.", ephemeral=True
             )
             return
 
@@ -53,20 +53,20 @@ class IGNModal(discord.ui.Modal, title="🎮 Minecraft Whitelist"):
             name_check = raw_name[1:]
             if not re.match(r"^[a-zA-Z0-9_ ]{3,16}$", name_check):
                 await interaction.followup.send(
-                    "❌ Ungültiger Bedrock-Username!", ephemeral=True
+                    "❌ Invalid Bedrock username!", ephemeral=True
                 )
                 return
         else:
             if not IGN_REGEX.match(raw_name):
                 await interaction.followup.send(
-                    "❌ Ungültiger Java-Username! Nur Buchstaben, Zahlen und `_` erlaubt (3–16 Zeichen).",
+                    "❌ Invalid Java username! Only letters, numbers and `_` allowed (3–16 characters).",
                     ephemeral=True,
                 )
                 return
 
         name = raw_name
 
-        # Bereits whitelistet?
+        # Already whitelisted?
         async with aiosqlite.connect(DB_PATH) as db:
             row = await (await db.execute(
                 "SELECT minecraft_name FROM whitelist WHERE discord_id = ?",
@@ -75,8 +75,8 @@ class IGNModal(discord.ui.Modal, title="🎮 Minecraft Whitelist"):
 
         if row:
             await interaction.followup.send(
-                f"⚠️ Du bist bereits als `{row[0]}` whitelistet. "
-                "Wende dich an einen Admin, um deinen IGN zu ändern.",
+                f"⚠️ You are already whitelisted as `{row[0]}`. "
+                "Contact an admin to change your IGN.",
                 ephemeral=True,
             )
             return
@@ -89,20 +89,20 @@ class IGNModal(discord.ui.Modal, title="🎮 Minecraft Whitelist"):
                 response = await rcon_command(f"whitelist add {name}")
         except Exception:
             await interaction.followup.send(
-                "❌ Verbindung zum Minecraft-Server fehlgeschlagen. Versuche es später nochmal.",
+                "❌ Could not connect to the Minecraft server. Please try again later.",
                 ephemeral=True,
             )
             return
 
         if "already" in response.lower():
             await interaction.followup.send(
-                f"⚠️ `{name}` ist schon auf der Whitelist. Falls das dein Account ist, "
-                "melde dich bei einem Admin.",
+                f"⚠️ `{name}` is already on the whitelist. If that's your account, "
+                "contact an admin.",
                 ephemeral=True,
             )
             return
 
-        # In DB speichern
+        # Save to DB
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute(
                 "INSERT INTO whitelist (discord_id, minecraft_name) VALUES (?, ?)",
@@ -110,36 +110,36 @@ class IGNModal(discord.ui.Modal, title="🎮 Minecraft Whitelist"):
             )
             await db.commit()
 
-        # Nickname setzen
+        # Set nickname
         try:
             base = interaction.user.display_name.split(" (")[0]
             await interaction.user.edit(nick=f"{base} ({name})"[:32])
         except discord.Forbidden:
             pass
 
-        # Member-Rolle geben
+        # Assign member role
         guild = interaction.guild
         if guild and MEMBER_ROLE_ID:
             role = guild.get_role(MEMBER_ROLE_ID)
             if role:
                 try:
-                    await interaction.user.add_roles(role, reason="Whitelist beigetreten")
+                    await interaction.user.add_roles(role, reason="Joined whitelist")
                 except discord.Forbidden:
                     pass
 
-        plattform_emoji = "📱" if platform == "bedrock" else "💻"
+        platform_emoji = "📱" if platform == "bedrock" else "💻"
         await interaction.followup.send(
-            f"✅ {plattform_emoji} **{name}** wurde erfolgreich zur Whitelist hinzugefügt!\n"
-            "Du kannst den Server jetzt betreten. Viel Spaß! 🎮",
+            f"✅ {platform_emoji} **{name}** has been added to the whitelist!\n"
+            "You can now join the server. Have fun! 🎮",
             ephemeral=True,
         )
-        log.info(f"{interaction.user} ({interaction.user.id}) whitelistet als {name} ({platform})")
+        log.info(f"{interaction.user} ({interaction.user.id}) whitelisted as {name} ({platform})")
 
-        # Log-Channel
-        embed = discord.Embed(title="✅ Whitelist Beitritt", color=0x2ECC71)
-        embed.add_field(name="Discord", value=interaction.user.mention, inline=True)
-        embed.add_field(name="IGN",     value=f"`{name}`",              inline=True)
-        embed.add_field(name="Platform",value=f"{plattform_emoji} {platform.capitalize()}", inline=True)
+        # Log channel
+        embed = discord.Embed(title="✅ Whitelist Join", color=0x2ECC71)
+        embed.add_field(name="Discord",  value=interaction.user.mention,                        inline=True)
+        embed.add_field(name="IGN",      value=f"`{name}`",                                     inline=True)
+        embed.add_field(name="Platform", value=f"{platform_emoji} {platform.capitalize()}",     inline=True)
         embed.set_thumbnail(url=interaction.user.display_avatar.url)
         embed.set_footer(text=f"ID: {interaction.user.id}")
         await log_channel(self.bot, embed)
@@ -153,7 +153,7 @@ class WhitelistView(discord.ui.View):
         self.bot = bot
 
     @discord.ui.button(
-        label="Whitelist beitreten",
+        label="Join Whitelist",
         style=discord.ButtonStyle.success,
         emoji="⛏️",
         custom_id="whitelist:join",
@@ -169,25 +169,24 @@ class WhitelistCog(commands.Cog):
         self.bot = bot
         bot.add_view(WhitelistView(bot))
 
-    @app_commands.command(name="whitelist-panel", description="Postet das Whitelist-Panel (Admin)")
+    @app_commands.command(name="whitelist-panel", description="Posts the whitelist panel (admin only)")
     @app_commands.checks.has_permissions(administrator=True)
     async def post_panel(self, interaction: discord.Interaction):
         embed = discord.Embed(
-            title="⛏️  Dem Server beitreten",
+            title="⛏️  Join the Server",
             description=(
-                "Klicke auf den Button unten, um deinen **Minecraft-Account** "
-                "zur Whitelist hinzuzufügen.\n\n"
-                "**So funktioniert's:**\n"
-                "1. Klicke auf **Whitelist beitreten**\n"
-                "2. Gib deinen Minecraft-Username ein\n"
-                "3. Wähle deine Platform (`java` oder `bedrock`)\n"
-                "4. Du bekommst automatisch die Member-Rolle\n\n"
-                "> ⚠️ Stelle sicher, dass du den richtigen Username eingibst!\n"
-                "> Der Account muss dir gehören."
+                "Click the button below to add your **Minecraft account** to the whitelist.\n\n"
+                "**How it works:**\n"
+                "1. Click **Join Whitelist**\n"
+                "2. Enter your Minecraft username\n"
+                "3. Select your platform (`java` or `bedrock`)\n"
+                "4. You'll automatically receive the Member role\n\n"
+                "> ⚠️ Make sure you enter the correct username!\n"
+                "> The account must belong to you."
             ),
             color=0x2ECC71,
         )
-        embed.set_footer(text="Jeder Discord-Account kann nur einen IGN registrieren.")
+        embed.set_footer(text="Each Discord account can only register one IGN.")
 
         target = interaction.channel
         if WHITELIST_CHANNEL_ID:
@@ -197,12 +196,12 @@ class WhitelistCog(commands.Cog):
 
         await target.send(embed=embed, view=WhitelistView(self.bot))
         await interaction.response.send_message(
-            f"✅ Panel in {target.mention} gepostet.", ephemeral=True
+            f"✅ Panel posted in {target.mention}.", ephemeral=True
         )
 
-    @app_commands.command(name="whitelist-remove", description="Entfernt jemanden von der Whitelist (Admin)")
+    @app_commands.command(name="whitelist-remove", description="Removes someone from the whitelist (admin only)")
     @app_commands.checks.has_permissions(administrator=True)
-    @app_commands.describe(member="Der Discord-User der entfernt werden soll")
+    @app_commands.describe(member="The Discord user to remove")
     async def remove(self, interaction: discord.Interaction, member: discord.Member):
         async with aiosqlite.connect(DB_PATH) as db:
             row = await (await db.execute(
@@ -212,7 +211,7 @@ class WhitelistCog(commands.Cog):
 
         if not row:
             await interaction.response.send_message(
-                f"❌ {member.mention} ist nicht in der Whitelist-Datenbank.",
+                f"❌ {member.mention} is not in the whitelist database.",
                 ephemeral=True,
             )
             return
@@ -225,7 +224,7 @@ class WhitelistCog(commands.Cog):
                 await rcon_command(f"whitelist remove {ign}")
         except Exception:
             await interaction.response.send_message(
-                "❌ RCON-Verbindung fehlgeschlagen.", ephemeral=True
+                "❌ RCON connection failed.", ephemeral=True
             )
             return
 
@@ -234,18 +233,18 @@ class WhitelistCog(commands.Cog):
             await db.commit()
 
         await interaction.response.send_message(
-            f"✅ `{ign}` wurde von der Whitelist entfernt.", ephemeral=True
+            f"✅ `{ign}` has been removed from the whitelist.", ephemeral=True
         )
 
-        # Log-Channel
-        embed = discord.Embed(title="🗑️ Whitelist Entfernung", color=0xE74C3C)
-        embed.add_field(name="Discord",     value=member.mention,          inline=True)
-        embed.add_field(name="IGN",         value=f"`{ign}`",              inline=True)
-        embed.add_field(name="Entfernt von",value=interaction.user.mention, inline=True)
+        # Log channel
+        embed = discord.Embed(title="🗑️ Whitelist Removal", color=0xE74C3C)
+        embed.add_field(name="Discord",     value=member.mention,           inline=True)
+        embed.add_field(name="IGN",         value=f"`{ign}`",               inline=True)
+        embed.add_field(name="Removed by",  value=interaction.user.mention, inline=True)
         embed.set_footer(text=f"ID: {member.id}")
         await log_channel(self.bot, embed)
 
-    @app_commands.command(name="whitelist-info", description="Zeigt deinen whitelisteten IGN")
+    @app_commands.command(name="whitelist-info", description="Shows your whitelisted IGN")
     async def info(self, interaction: discord.Interaction):
         async with aiosqlite.connect(DB_PATH) as db:
             row = await (await db.execute(
@@ -255,13 +254,13 @@ class WhitelistCog(commands.Cog):
 
         if not row:
             await interaction.response.send_message(
-                "❌ Du bist noch nicht whitelistet. Nutze das Whitelist-Panel!",
+                "❌ You are not whitelisted yet. Use the whitelist panel!",
                 ephemeral=True,
             )
             return
 
         await interaction.response.send_message(
-            f"✅ Du bist als **`{row[0]}`** whitelistet (seit {row[1][:10]}).",
+            f"✅ You are whitelisted as **`{row[0]}`** (since {row[1][:10]}).",
             ephemeral=True,
         )
 

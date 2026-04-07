@@ -31,10 +31,10 @@ class MinecraftBot(commands.Bot):
         await self.load_extension("cogs.voting")
         await self.load_extension("cogs.team")
         await self.tree.sync()
-        log.info("Alle Cogs geladen & Slash Commands gesynct.")
+        log.info("All cogs loaded & slash commands synced.")
 
     async def on_ready(self):
-        log.info(f"Eingeloggt als {self.user} (ID: {self.user.id})")
+        log.info(f"Logged in as {self.user} (ID: {self.user.id})")
 
 
 bot = MinecraftBot()
@@ -42,5 +42,5 @@ bot = MinecraftBot()
 if __name__ == "__main__":
     token = os.getenv("DISCORD_TOKEN")
     if not token:
-        raise ValueError("DISCORD_TOKEN fehlt in der .env Datei!")
+        raise ValueError("DISCORD_TOKEN is missing from the .env file!")
     bot.run(token)

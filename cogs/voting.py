@@ -20,11 +20,11 @@ class VoteView(discord.ui.View):
         self.yes_button.custom_id = f"vote:yes:{vote_id}"
         self.no_button.custom_id  = f"vote:no:{vote_id}"
 
-    @discord.ui.button(label="✅  Ja",   style=discord.ButtonStyle.success, custom_id="vote:yes:0", row=0)
+    @discord.ui.button(label="✅  Yes", style=discord.ButtonStyle.success, custom_id="vote:yes:0", row=0)
     async def yes_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self._handle_vote(interaction, "yes")
 
-    @discord.ui.button(label="❌  Nein", style=discord.ButtonStyle.danger,  custom_id="vote:no:0",  row=0)
+    @discord.ui.button(label="❌  No",  style=discord.ButtonStyle.danger,  custom_id="vote:no:0",  row=0)
     async def no_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self._handle_vote(interaction, "no")
 
@@ -38,7 +38,7 @@ class VoteView(discord.ui.View):
             )).fetchone()
 
         if not row or not row[0]:
-            await interaction.followup.send("⏰ Diese Abstimmung ist bereits beendet.", ephemeral=True)
+            await interaction.followup.send("⏰ This poll has already ended.", ephemeral=True)
             return
 
         async with aiosqlite.connect(DB_PATH) as db:
@@ -54,8 +54,8 @@ class VoteView(discord.ui.View):
         yes_pct = round(yes / total * 100) if total else 0
 
         await interaction.followup.send(
-            f"{'✅' if choice == 'yes' else '❌'} Stimme gezählt!\n"
-            f"**Aktuell:** ✅ {yes} ({yes_pct}%) · ❌ {no} ({100 - yes_pct}%)",
+            f"{'✅' if choice == 'yes' else '❌'} Vote counted!\n"
+            f"**Current:** ✅ {yes} ({yes_pct}%) · ❌ {no} ({100 - yes_pct}%)",
             ephemeral=True,
         )
 
@@ -63,15 +63,15 @@ class VoteView(discord.ui.View):
 # ── Cog ───────────────────────────────────────────────────────────────────────
 
 class VotingCog(commands.Cog):
-    vote_group = app_commands.Group(name="vote", description="Abstimmungen erstellen und verwalten")
+    vote_group = app_commands.Group(name="vote", description="Create and manage polls")
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @vote_group.command(name="create", description="Startet eine neue Abstimmung")
+    @vote_group.command(name="create", description="Start a new poll")
     @app_commands.describe(
-        question="Die Frage der Abstimmung",
-        duration_hours="Wie lange läuft die Abstimmung (in Stunden, 0 = unbegrenzt)",
+        question="The poll question",
+        duration_hours="How long the poll runs (in hours, 0 = unlimited)",
     )
     async def create(
         self,
@@ -80,11 +80,11 @@ class VotingCog(commands.Cog):
         duration_hours: int = 24,
     ):
         ends_at = None
-        ends_str = "unbegrenzt"
+        ends_str = "unlimited"
         if duration_hours > 0:
             end_dt = datetime.utcnow() + timedelta(hours=duration_hours)
             ends_at = end_dt.isoformat()
-            ends_str = f"endet <t:{int(end_dt.timestamp())}:R>"
+            ends_str = f"ends <t:{int(end_dt.timestamp())}:R>"
 
         async with aiosqlite.connect(DB_PATH) as db:
             cursor = await db.execute(
@@ -96,14 +96,14 @@ class VotingCog(commands.Cog):
             await db.commit()
 
         embed = discord.Embed(
-            title="🗳️  Abstimmung",
+            title="🗳️  Poll",
             description=f"**{question}**",
             color=0x9B59B6,
         )
-        embed.add_field(name="✅ Ja",   value="`0 Stimmen`", inline=True)
-        embed.add_field(name="❌ Nein", value="`0 Stimmen`", inline=True)
-        embed.add_field(name="⏰ Dauer", value=ends_str,     inline=False)
-        embed.set_footer(text=f"Abstimmung #{vote_id} · erstellt von {interaction.user.display_name}")
+        embed.add_field(name="✅ Yes",      value="`0 votes`", inline=True)
+        embed.add_field(name="❌ No",       value="`0 votes`", inline=True)
+        embed.add_field(name="⏰ Duration", value=ends_str,    inline=False)
+        embed.set_footer(text=f"Poll #{vote_id} · created by {interaction.user.display_name}")
 
         view = VoteView(vote_id, self.bot)
         await interaction.response.send_message(embed=embed, view=view)
@@ -113,17 +113,16 @@ class VotingCog(commands.Cog):
             await db.execute("UPDATE votes SET message_id=? WHERE id=?", (msg.id, vote_id))
             await db.commit()
 
-        # Log
-        log_embed = discord.Embed(title="🗳️ Abstimmung erstellt", color=0x9B59B6)
-        log_embed.add_field(name="Frage",     value=question,                  inline=False)
-        log_embed.add_field(name="Erstellt von", value=interaction.user.mention, inline=True)
-        log_embed.add_field(name="Dauer",     value=ends_str,                  inline=True)
-        log_embed.set_footer(text=f"Abstimmung #{vote_id}")
+        log_embed = discord.Embed(title="🗳️ Poll Created", color=0x9B59B6)
+        log_embed.add_field(name="Question",   value=question,                  inline=False)
+        log_embed.add_field(name="Created by", value=interaction.user.mention,  inline=True)
+        log_embed.add_field(name="Duration",   value=ends_str,                  inline=True)
+        log_embed.set_footer(text=f"Poll #{vote_id}")
         await log_channel(self.bot, log_embed)
 
-    @vote_group.command(name="end", description="Beendet eine Abstimmung und zeigt das Ergebnis (Admin)")
+    @vote_group.command(name="end", description="End a poll and show the result (admin only)")
     @app_commands.checks.has_permissions(administrator=True)
-    @app_commands.describe(vote_id="Die ID der Abstimmung")
+    @app_commands.describe(vote_id="The poll ID")
     async def end(self, interaction: discord.Interaction, vote_id: int):
         async with aiosqlite.connect(DB_PATH) as db:
             row = await (await db.execute(
@@ -132,12 +131,12 @@ class VotingCog(commands.Cog):
             )).fetchone()
 
         if not row:
-            await interaction.response.send_message("❌ Abstimmung nicht gefunden.", ephemeral=True)
+            await interaction.response.send_message("❌ Poll not found.", ephemeral=True)
             return
 
         question, yes, no, active = row
         if not active:
-            await interaction.response.send_message("⏰ Diese Abstimmung ist bereits beendet.", ephemeral=True)
+            await interaction.response.send_message("⏰ This poll has already ended.", ephemeral=True)
             return
 
         async with aiosqlite.connect(DB_PATH) as db:
@@ -146,24 +145,23 @@ class VotingCog(commands.Cog):
 
         total = yes + no
         yes_pct = round(yes / total * 100) if total else 0
-        winner = "✅ Ja gewinnt!" if yes > no else ("❌ Nein gewinnt!" if no > yes else "🤝 Unentschieden!")
+        winner = "✅ Yes wins!" if yes > no else ("❌ No wins!" if no > yes else "🤝 Tie!")
 
         embed = discord.Embed(
-            title="🗳️  Abstimmung beendet",
+            title="🗳️  Poll Ended",
             description=f"**{question}**\n\n{winner}",
             color=0x2ECC71 if yes >= no else 0xE74C3C,
         )
-        embed.add_field(name="✅ Ja",   value=f"`{yes} Stimmen ({yes_pct}%)`",       inline=True)
-        embed.add_field(name="❌ Nein", value=f"`{no} Stimmen ({100 - yes_pct}%)`",  inline=True)
-        embed.set_footer(text=f"Gesamt: {total} Stimmen · Abstimmung #{vote_id}")
+        embed.add_field(name="✅ Yes", value=f"`{yes} votes ({yes_pct}%)`",       inline=True)
+        embed.add_field(name="❌ No",  value=f"`{no} votes ({100 - yes_pct}%)`",  inline=True)
+        embed.set_footer(text=f"Total: {total} votes · Poll #{vote_id}")
         await interaction.response.send_message(embed=embed)
 
-        # Log
-        log_embed = discord.Embed(title="🗳️ Abstimmung beendet", color=0x95A5A6)
-        log_embed.add_field(name="Frage",       value=question,                  inline=False)
-        log_embed.add_field(name="Ergebnis",    value=winner,                    inline=True)
-        log_embed.add_field(name="Beendet von", value=interaction.user.mention,  inline=True)
-        log_embed.set_footer(text=f"Abstimmung #{vote_id} · {total} Stimmen")
+        log_embed = discord.Embed(title="🗳️ Poll Ended", color=0x95A5A6)
+        log_embed.add_field(name="Question", value=question,                  inline=False)
+        log_embed.add_field(name="Result",   value=winner,                    inline=True)
+        log_embed.add_field(name="Ended by", value=interaction.user.mention,  inline=True)
+        log_embed.set_footer(text=f"Poll #{vote_id} · {total} votes")
         await log_channel(self.bot, log_embed)
 
 

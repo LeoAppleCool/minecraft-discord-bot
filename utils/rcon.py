@@ -24,7 +24,7 @@ def _unpack(data: bytes):
 
 
 async def rcon_command(command: str) -> str:
-    """Sendet einen RCON-Befehl und gibt die Antwort zurück (signal-frei)."""
+    """Sends an RCON command and returns the server response."""
     reader, writer = await asyncio.open_connection(RCON_HOST, RCON_PORT)
     try:
         # Login
@@ -33,9 +33,9 @@ async def rcon_command(command: str) -> str:
         raw = await reader.read(4096)
         req_id, _, _ = _unpack(raw)
         if req_id == -1:
-            raise ConnectionRefusedError("RCON: Falsches Passwort")
+            raise ConnectionRefusedError("RCON: Wrong password")
 
-        # Befehl senden
+        # Send command
         writer.write(_pack(2, RCON_COMMAND, command))
         await writer.drain()
         raw = await reader.read(4096)

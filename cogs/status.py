@@ -29,17 +29,17 @@ class StatusCog(commands.Cog):
 
             activity = discord.Activity(
                 type=discord.ActivityType.watching,
-                name=f"{online}/{maximum} Spieler",
+                name=f"{online}/{maximum} players",
             )
             await self.bot.change_presence(status=discord.Status.online, activity=activity)
 
             if not self._last_online:
-                log.info("Server wieder online.")
+                log.info("Server is back online.")
             self._last_online = True
 
         except Exception:
             if self._last_online:
-                log.warning("Server nicht erreichbar – Status auf offline gesetzt.")
+                log.warning("Server unreachable — status set to offline.")
             self._last_online = False
             activity = discord.Activity(
                 type=discord.ActivityType.watching,
@@ -53,38 +53,38 @@ class StatusCog(commands.Cog):
     async def before_update(self):
         await self.bot.wait_until_ready()
 
-    @discord.app_commands.command(name="online", description="Zeigt alle Spieler die gerade online sind")
+    @discord.app_commands.command(name="online", description="Shows all players currently online")
     async def online(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
-        # Spieleranzahl via mcstatus, echte Namen via RCON list
+        # Player count via mcstatus, real names via RCON list
         try:
             status = await self.server.async_status()
             online_count = status.players.online
             max_count = status.players.max or MC_MAX_PLAYERS
         except Exception:
             embed = discord.Embed(
-                title="🔴  Server nicht erreichbar",
-                description="Der Minecraft-Server ist aktuell offline.",
+                title="🔴  Server Unreachable",
+                description="The Minecraft server is currently offline.",
                 color=0xE74C3C,
             )
             embed.set_footer(text=f"{MC_HOST}:{MC_PORT}")
             await interaction.followup.send(embed=embed, ephemeral=True)
             return
 
-        # Echte Namen via RCON (kein "Anonymous Player" Problem)
+        # Real names via RCON (avoids "Anonymous Player" issues)
         player_names: list[str] = []
         try:
             rcon_resp = await rcon_command("list")
-            # Antwort z.B.: "There are 3 of a max of 20 players online: Foo, Bar, Baz"
+            # Response e.g.: "There are 3 of a max of 20 players online: Foo, Bar, Baz"
             match = re.search(r"online:\s*(.+)", rcon_resp, re.IGNORECASE)
             if match:
                 raw_names = match.group(1).strip()
                 if raw_names:
                     player_names = [n.strip() for n in raw_names.split(",") if n.strip()]
         except Exception:
-            pass  # RCON nicht verfügbar → leere Liste
+            pass  # RCON unavailable — use empty list
 
-        # IGN → discord_id mapping aus der DB laden
+        # Build IGN → discord_id mapping from the DB
         ign_to_discord: dict[str, int] = {}
         async with aiosqlite.connect(DB_PATH) as db:
             async with db.execute("SELECT discord_id, minecraft_name FROM whitelist") as cursor:
@@ -93,13 +93,13 @@ class StatusCog(commands.Cog):
 
         if not player_names:
             if online_count == 0:
-                description = "Aktuell ist niemand online. 😴"
+                description = "Nobody is online right now. 😴"
             else:
-                description = f"**{online_count}** Spieler online — keine Namensliste verfügbar."
+                description = f"**{online_count}** player(s) online — name list unavailable."
         else:
             lines = []
             for name in player_names:
-                # Prefix wie "[Syndicate] " entfernen für den DB-Lookup
+                # Strip prefixes like "[Syndicate] " before DB lookup
                 clean_name = re.sub(r"^\[.*?\]\s*", "", name).strip()
                 discord_id = ign_to_discord.get(clean_name.lower())
                 if discord_id:
@@ -112,19 +112,19 @@ class StatusCog(commands.Cog):
         bar = "█" * bar_filled + "░" * (10 - bar_filled)
 
         embed = discord.Embed(
-            title="🌍  Wer ist gerade online?",
+            title="🌍  Who's Online?",
             description=description,
             color=0x57F287,
         )
         embed.add_field(
-            name="Spieler",
+            name="Players",
             value=f"`{bar}` **{online_count}/{max_count}**",
             inline=False,
         )
-        embed.set_footer(text=f"{MC_HOST}:{MC_PORT}  •  Nur für dich sichtbar")
+        embed.set_footer(text=f"{MC_HOST}:{MC_PORT}  •  Only visible to you")
         await interaction.followup.send(embed=embed, ephemeral=True)
 
-    @discord.app_commands.command(name="serverstatus", description="Zeigt den aktuellen Server-Status")
+    @discord.app_commands.command(name="serverstatus", description="Shows the current server status")
     async def serverstatus(self, interaction: discord.Interaction):
         await interaction.response.defer()
         try:
@@ -134,7 +134,6 @@ class StatusCog(commands.Cog):
             motd = status.description or "—"
             latency = round(status.latency, 1)
 
-            # Player list
             names = []
             if status.players.sample:
                 names = [p.name for p in status.players.sample]
@@ -143,7 +142,7 @@ class StatusCog(commands.Cog):
                 title="🟢  Server Online",
                 color=0x2ECC71,
             )
-            embed.add_field(name="Spieler", value=f"`{players}/{maximum}`", inline=True)
+            embed.add_field(name="Players", value=f"`{players}/{maximum}`", inline=True)
             embed.add_field(name="Ping",    value=f"`{latency} ms`",        inline=True)
             embed.add_field(name="MOTD",    value=f"`{str(motd)[:100]}`",   inline=False)
             if names:
@@ -155,10 +154,10 @@ class StatusCog(commands.Cog):
             embed.set_footer(text=f"{MC_HOST}:{MC_PORT}")
             await interaction.followup.send(embed=embed)
 
-        except Exception as e:
+        except Exception:
             embed = discord.Embed(
                 title="🔴  Server Offline",
-                description="Der Server ist aktuell nicht erreichbar.",
+                description="The server is currently unreachable.",
                 color=0xE74C3C,
             )
             embed.set_footer(text=f"{MC_HOST}:{MC_PORT}")
