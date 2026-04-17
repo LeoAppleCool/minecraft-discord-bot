@@ -222,6 +222,3 @@ This bot was built for a private SMP world shared between friends. Feel free to 
 
 ---
 
-## License
-
-MIT
